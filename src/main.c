@@ -1,3 +1,5 @@
+#include "cards.h"
+#include "random.h"
 #include <core.h>
 
 #include <SDL2/SDL.h>
@@ -21,6 +23,7 @@ void loop_logic(window_t* w)
 
 	window_start_fps_measuring(w);
 
+	card_manager_t* card_man = create_and_randomize_card_manager();
 	texture_map_t* t_map = create_texture_map(w);
 	texture_t* bg = create_texture(w, "./assets/bg.png");
 
@@ -31,12 +34,13 @@ void loop_logic(window_t* w)
 
 		/* Render */
 		render_texture_as_background(w, bg);
-		render_cards(w, t_map);
+		render_cards(w, t_map, card_man);
 
 		window_present(w);
 		window_measure_fps(w);
 	}
 
+	card_manager_destroy(card_man);
 	texture_map_destroy(t_map);
 	texture_destroy(bg);
 	window_destroy(w);
@@ -53,6 +57,7 @@ int main(int argc, char** argv)
   if ((w = create_window(DEFAULT_OPT)) == NULL)
 		EXIT_WITH_ERROR_SDL(err_CREATE_WINDOW);
 
+	init_random_numbers();
 	loop_logic(w);
   return quit_thirdparty();
 }

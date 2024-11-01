@@ -18,8 +18,11 @@ typedef struct __texture_t {
     unsigned int format;
 } texture_t;
 
+typedef struct __card_texture_t card_texture_t;
+
 typedef struct __texture_map_t {
     card_texture_t** cards;
+    texture_t* card_blank;
     texture_t* card_back;
 } texture_map_t;
 

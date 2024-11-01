@@ -70,7 +70,8 @@ void texture_destroy(texture_t* texture)
 texture_map_t* create_texture_map(window_t* w)
 {
 	texture_map_t* t_map = calloc(1, sizeof(texture_map_t));
-	t_map->card_back = create_texture(w, CARD_BACK_PATH);
+	t_map->card_back  = create_texture(w, CARD_BACK_PATH);
+	t_map->card_blank = create_texture(w, CARD_BLANK_PATH);
 
 	// TODO: load_all_cards_textures as an another thread 
 	load_all_cards_textures(w, t_map);
