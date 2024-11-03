@@ -7,7 +7,7 @@
 #include <string.h>
 #include <time.h>
 #include <math.h>
-
+#include <assert.h>
 #include <stdint.h>
 #include <stdbool.h>
 

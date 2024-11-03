@@ -3,17 +3,18 @@
 #
 
 CC = gcc
-CFLAGS = -D __DEBUG__ -O3 -g3 -Wshadow -Wundef -Wcast-align -Wstrict-overflow=5 -Wcast-qual -Wconversion -Wunreachable-code -std=c99 -Iinclude -lm -lSDL2 -lSDL2_image -lSDL2_ttf
+CFLAGS = -D __DEBUG__ -O3 -g3 -Wshadow -Wundef -Wcast-align -Wstrict-overflow=5 -Wcast-qual -Wconversion -Wunreachable-code -std=c18 -Iinclude $(shell pkg-config --cflags sdl2)
+LDFLAGS =  -lm $(shell pkg-config --libs sdl2 sdl2_ttf sdl2_image)
 
 SRC = $(wildcard ./src/*.c)
 OBJ = $(SRC:.c=.o)
 
-TARGET = csolitare
+TARGET = c-solitaire
 
 all: $(TARGET) clean
 
 $(TARGET): $(OBJ)
-	$(CC) $(CFLAGS) $^ -o $@
+	$(CC) $(LDFLAGS) $^ -o $@
 
 %.o: %.c
 	$(CC) $(CFLAGS) -c $< -o $@

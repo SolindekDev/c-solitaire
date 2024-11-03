@@ -12,7 +12,7 @@
 #include <render.h>
 
 /* Default options for creating a window */
-#define DEFAULT_OPT "CSolitare", 1450, 890
+#define DEFAULT_OPT "CSolitaire", 1450, 890
 
 void loop_logic(window_t* w)
 {
