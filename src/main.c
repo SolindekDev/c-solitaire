@@ -29,7 +29,7 @@ void loop_logic(window_t* w)
 
 	while (window_should_exit(w))
 	{
-		window_handle_events(w);
+		window_handle_events(w, card_man);
 		window_clear_renderer(w);
 
 		/* Render */

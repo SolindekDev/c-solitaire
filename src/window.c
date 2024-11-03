@@ -97,7 +97,14 @@ bool window_should_exit(window_t* window)
   return !window->window_loop;
 }
 
-void window_handle_events(window_t* window)
+/* I don't really want to include <cards.h> because 
+ * it causes some problems while compiling.
+  */
+typedef struct __card_manager_t card_manager_t;
+void card_drag_event(card_manager_t *card_man, window_t *window,
+                     SDL_Event event);
+
+void window_handle_events(window_t* window, card_manager_t* card_man)
 {
   SDL_Event event;
   while (SDL_PollEvent(&event))
@@ -107,6 +114,11 @@ void window_handle_events(window_t* window)
         case SDL_QUIT:
             window->window_loop = true;
             break;
+        case SDL_MOUSEBUTTONDOWN:
+        case SDL_MOUSEBUTTONUP:
+        case SDL_MOUSEMOTION:
+          card_drag_event(card_man, window, event);
+          break;
     }
   }
 }

@@ -11,4 +11,12 @@
 #include <stdint.h>
 #include <stdbool.h>
 
+#define NO_NULL(x)                                                             \
+  ({                                                                           \
+    if (x == NULL) {                                                           \
+      printf("critical error: " #x " is null.");                               \
+      exit(1);                                                                 \
+    }                                                                          \
+  })
+
 #endif /* CORE_H */
