@@ -10,5 +10,5 @@ double random_number()
 
 void init_random_numbers()
 {
-  srand(time(NULL));
+  srand((unsigned int)time(NULL));
 }

@@ -7,6 +7,7 @@
 #include <texture.h>
 #include <thirdparty.h>
 #include <window.h>
+#include <utils.h>
 
 struct card_find_t {
 	card_t* card;
@@ -62,7 +63,7 @@ void render_tableau_pile(window_t *window, texture_map_t *t_map,
 			int x = x_pos;
 			int y = y_pos;
 
-			if (card_dragging == true)
+			if (card_dragging == true && card_several_dragging == false)
 			{
 				x = card.i == card_dragging_data.card->i
 							? card_dragging_x - (CARD_SIZE_X(window) / 2)
@@ -70,6 +71,20 @@ void render_tableau_pile(window_t *window, texture_map_t *t_map,
 				y = card.i == card_dragging_data.card->i
 							? card_dragging_y - (CARD_SIZE_Y(window) / 2)
 							: y_pos;
+			}
+
+			if (card_several_dragging == true)
+			{
+				for (int k = 0; k < card_several_dragging_data->length; k++)
+				{
+					char* curr_card_id = ((card_t*)get_element_from_array(card_several_dragging_data, (unsigned long)k))->id;
+					// printf("%s\n", curr_card_id);
+					if (strcmp(curr_card_id, card.id) == 0)
+					{
+						x = card_dragging_x - (CARD_SIZE_X(window) / 2);
+						y = card_dragging_y - (CARD_SIZE_Y(window) / 2) + (30 * k);
+					}
+				}
 			}
 			
 
@@ -113,7 +128,27 @@ void render_stock_pile(window_t *window, texture_map_t *t_map,
 }
 
 void render_talon_pile(window_t *window, texture_map_t *t_map,
-                       card_manager_t *card_man) {}
+                       card_manager_t *card_man) 
+{
+	if (card_man->talon_size != 0)
+	{
+		int x_pos = (int)round(window->width * 0.065) + CARD_SIZE_X(window) + (CARD_PADDING(window) / 2); 
+		int y_pos = (int)round(window->height * 0.025); 
+
+		card_t card = card_man->talon[card_man->talon_size - 1];
+
+		if (card_dragging)
+			if (card_dragging_data.talon == true)
+				if (card.i == card_dragging_data.card->i)
+				{
+					x_pos = card_dragging_x - CARD_SIZE_X(window) / 2;
+					y_pos = card_dragging_y - CARD_SIZE_X(window) / 2;
+				}
+
+		render_texture_as_image_resized(window, t_map->cards[card.i]->card_texture, x_pos, y_pos,
+										CARD_SIZE(window));
+	}
+}
 
 card_texture_t *create_card_texture_from_card_t(window_t *window, card_t card) 
 {
@@ -165,6 +200,9 @@ card_manager_t *create_and_randomize_card_manager()
   card_manager_t *card_man = calloc(1, sizeof(card_manager_t));
   array_t *card_copy = create_array(52 * sizeof(card_t *));
 
+  card_man->stock_size = 24;
+  card_man->talon_size = 0;
+
   // Copy all elements from `all_cards` to `card_copy`
   for (int i = 0; i < 52; i++) 
 	{
@@ -174,13 +212,13 @@ card_manager_t *create_and_randomize_card_manager()
     append_element_to_array(card_copy, card);
   }
 
-  int available_cards = card_copy->length;
+  unsigned long available_cards = card_copy->length;
 
   for (int i = 0; i < 7; i++) 
 	{
     for (int j = 0; j < (i + 1); j++) 
 		{
-      int random_num = (int)round(random_number() * (available_cards - 1));
+      int random_num = (int)round(random_number() * ((int)available_cards - 1));
       card_t *random_card =
           get_element_from_array(card_copy, (unsigned long)random_num);
       if (j == i)
@@ -195,7 +233,13 @@ card_manager_t *create_and_randomize_card_manager()
   }
 
   for (int k = 0; k < card_copy->length; k++)
-    free(get_element_from_array(card_copy, k));
+  {
+	card_t* card = get_element_from_array(card_copy, (unsigned long)k);
+	memcpy(&card_man->stock[k], card, sizeof(card_t));
+  }
+
+  for (int l = 0; l < card_copy->length; l++)
+    free(get_element_from_array(card_copy, (unsigned long)l));
   free(card_copy);
 
   return card_man;
@@ -216,48 +260,6 @@ int card_calculate_tableau_card_length(card_manager_t* card_man, int tableau_col
 	return n;
 }
 
-// int card_row_find_out_by_mouse_position(card_manager_t *card_man,
-//                                         window_t *window, int mouse_x,
-//                                         int mouse_y) 
-// {
-// 	int tableau_start = (int)round(window->height * 0.05) + CARD_SIZE_Y(window);
-	
-// 	if (mouse_y > tableau_start)
-// 	{
-// 		// We are heading more to the tableau, now we are going to find out
-// 		// the x location, so on which pile we are clicking from 1 to 7
-// 		int x_pos_start = 							  (int)round(window->width * 0.065);
-// 		int x_pos_end   = window->width - (int)round(window->width * 0.065);
-
-// 		if (mouse_x > x_pos_start && mouse_x < x_pos_end)
-// 		{
-// 			// Find out is the mouse even pointing at a card or between the paddings
-// 			int absolute_position_x   = mouse_x - ((int)round(window->width * 0.065));
-// 			float estimated_column_x  = (float)absolute_position_x / (CARD_PADDING(window) + CARD_SIZE_X(window));
-
-// 			int   integer_part_x = (int)estimated_column_x;
-// 			float decimal_part_x = estimated_column_x - integer_part_x;
-
-// 			if (decimal_part_x >= 0.0 && decimal_part_x <= 0.7) 
-// 			{
-//         if (integer_part_x >= 0 && integer_part_x <= 6) 
-// 				{
-// 					return integer_part_x;
-// 				}
-// 			} else
-// 				return -1;
-// 		}	
-// 		else
-// 			return -1;
-// 	}
-// 	else 
-// 	{
-// 		// TODO: Foundation, stock and pile type shit
-// 	}
-
-// 	return -1;
-// }
-
 struct card_find_t card_find_out_by_mouse_position(card_manager_t *card_man,
                                             window_t *window, int mouse_x,
                                             int mouse_y) 
@@ -265,13 +267,14 @@ struct card_find_t card_find_out_by_mouse_position(card_manager_t *card_man,
 	// First of all find out where is the mouse heading more foundation, 
 	// stock and pile or just the tableau
 
-	int tableau_start = (int)round(window->height * 0.05) + CARD_SIZE_Y(window);
+	int tableau_start = (int)round(window->height * 0.050) + CARD_SIZE_Y(window);
+	int stock_start   = (int)round(window->height * 0.025);
 	
 	if (mouse_y > tableau_start)
 	{
 		// We are heading more to the tableau, now we are going to find out
 		// the x location, so on which pile we are clicking from 1 to 7
-		int x_pos_start = 							  (int)round(window->width * 0.065);
+		int x_pos_start = (int)round(window->width * 0.065);
 		int x_pos_end   = window->width - (int)round(window->width * 0.065);
 
 		if (mouse_x > x_pos_start && mouse_x < x_pos_end)
@@ -312,12 +315,43 @@ struct card_find_t card_find_out_by_mouse_position(card_manager_t *card_man,
 		else
 			return (struct card_find_t) { .card = NULL };
 	}
+	if (card_man->talon_size != 0)
+	{
+		int talon_x_pos = (int)round(window->width * 0.065) + CARD_SIZE_X(window) + (CARD_PADDING(window) / 2); 
+		int talon_y_pos = (int)round(window->height * 0.025); 
+
+		if (check_box_collision(talon_x_pos, talon_y_pos, CARD_SIZE(window), mouse_x, mouse_y, 1, 1))
+		{
+			return (struct card_find_t) {
+				.card = &card_man->talon[card_man->talon_size - 1], 
+				.row_index = -1, .col_index = -1,
+				.talon = true,
+			};
+		}
+	}
 	else 
 	{
 		// TODO: Foundation, stock and pile type shit
 	}
 
 	return (struct card_find_t) { .card = NULL };
+}
+
+void card_stock_clicked(window_t* window, card_manager_t* card_man)
+{
+	/* If we clicked the stock we need to the card from the top
+	* to the talon pile */
+
+	card_man->talon_size++;
+	card_man->stock_size--;
+
+	for (int i = 0; i < card_man->stock_size; i++)
+		printf("- %d=%s\n", i, card_man->stock[i].path);
+
+	// TODO: Add that when the stock size equals 0 it restarts
+	memcpy(&card_man->talon[card_man->talon_size - 1], &card_man->stock[card_man->stock_size - 1], sizeof(card_t));
+	memset(&card_man->stock[card_man->stock_size - 1], 0, sizeof(card_t));
+	return;
 }
 
 void card_drag_event(card_manager_t *card_man, window_t *window,
@@ -333,39 +367,82 @@ void card_drag_event(card_manager_t *card_man, window_t *window,
 
 		struct card_find_t mouse_on_card = card_find_out_by_mouse_position(card_man, window, mouse_x, mouse_y);
 
-		// Prevent from some weird shit to happend
-		if (mouse_on_card.col_index == card_dragging_data.col_index)
+		if (card_several_dragging == false)
 		{
-			card_dragging = false;
-			return;
-		}
-
-		if (mouse_on_card.tableau)
-		{	
-			int row_index = mouse_on_card.row_index;
-			if (mouse_on_card.card == NULL)
-				row_index = card_calculate_tableau_card_length(card_man, mouse_on_card.col_index) - 1;
-
-			if (!logic_can_card_be_placed(
-						card_man->tableau[mouse_on_card.col_index][row_index], 
-						card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index]))
+			// Prevent from some weird shit to happend
+			if (mouse_on_card.col_index == card_dragging_data.col_index)
 			{
-				printf("This move is illegal to perform.\n");
 				card_dragging = false;
 				return;
 			}
 
-			memcpy(&card_man->tableau[mouse_on_card.col_index][row_index + 1],
-						 &card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index], sizeof(card_t));
-			memset(&card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index], 0, sizeof(card_t));
+			if (mouse_on_card.tableau)
+			{	
+				int row_index = mouse_on_card.row_index;
+				if (mouse_on_card.card == NULL)
+					row_index = card_calculate_tableau_card_length(card_man, mouse_on_card.col_index) - 1;
 
-			if ((card_dragging_data.row_index - 1) != -1)
-				card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index - 1].hidden = false;
+				if (!logic_can_card_be_placed(
+							card_man->tableau[mouse_on_card.col_index][row_index], 
+							card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index]))
+				{
+					printf("This move is illegal to perform.\n");
+					card_dragging = false;
+					return;
+				}
+
+				memcpy(&card_man->tableau[mouse_on_card.col_index][row_index + 1],
+							&card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index], sizeof(card_t));
+				memset(&card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index], 0, sizeof(card_t));
+
+				if ((card_dragging_data.row_index - 1) != -1)
+					card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index - 1].hidden = false;
+			}
+			else
+				printf("TODO: performing this action on different piles\n");
 		}
 		else
-			printf("TODO: performing this action on different piles\n");
+		{
+			if (mouse_on_card.col_index == card_dragging_data.col_index)
+			{
+				card_dragging = false;
+				card_several_dragging = false;
+				return;
+			}
+
+			if (mouse_on_card.tableau && card_dragging_data.tableau)
+			{	
+				card_t* first_card = get_element_from_array(card_several_dragging_data, 0);
+				int row_index = mouse_on_card.row_index;
+				if (mouse_on_card.card == NULL)
+					row_index = card_calculate_tableau_card_length(card_man, mouse_on_card.col_index) - 1;
+
+				if (!logic_can_card_be_placed(card_man->tableau[mouse_on_card.col_index][row_index], *first_card))
+				{
+					printf("This move is illegal to perform.\n");
+					card_dragging = false;
+					card_several_dragging = false;
+					return;
+				}
+
+				printf("This move can be performed.\n");
+
+				for (int i = 0; i < card_several_dragging_data->length; i++)
+				{
+					memcpy(&card_man->tableau[mouse_on_card.col_index][row_index + i + 1], 
+							get_element_from_array(card_several_dragging_data, (unsigned long)i), sizeof(card_t));
+					memset(&card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index + i], 0, sizeof(card_t));
+				}
+
+				if ((card_dragging_data.row_index - 1) != -1)
+					card_man->tableau[card_dragging_data.col_index][card_dragging_data.row_index - 1].hidden = false;
+			}
+			else
+				printf("TODO: performing this action on different piles\n");
+		}
 
 		card_dragging = false;
+		card_several_dragging = false;
 	}
 	else if (event.type == SDL_MOUSEMOTION)
 	{
@@ -383,31 +460,59 @@ void card_drag_event(card_manager_t *card_man, window_t *window,
 		int mouse_x = event.button.x;
 		int mouse_y = event.button.y;
 
-		struct card_find_t mouse_on_card = card_find_out_by_mouse_position(card_man, window, mouse_x, mouse_y);
+		int stock_x_pos = (int)round(window->width  * 0.065);  
+		int stock_y_pos = (int)round(window->height * 0.025);  
 
-		if (mouse_on_card.card != NULL)
+		if (check_box_collision(stock_x_pos, stock_y_pos, CARD_SIZE(window), mouse_x, mouse_y, 1, 1))
+			card_stock_clicked(window, card_man);
+		else
 		{
-			int all_cards_in_col = card_calculate_tableau_card_length(card_man, mouse_on_card.col_index);
+			struct card_find_t mouse_on_card = card_find_out_by_mouse_position(card_man, window, mouse_x, mouse_y);
 
-			if (all_cards_in_col == mouse_on_card.col_index)
+			if (mouse_on_card.talon == true)
 			{
-				card_dragging = true;
-				card_dragging_data = mouse_on_card;
-				card_dragging_x = mouse_x;
-				card_dragging_y = mouse_y;
-			}
-			else
-			{
-				card_dragging = true;
-				card_several_dragging = true;
-				card_several_dragging_data = create_array(sizeof(card_t*));
-				card_dragging_x = mouse_x;
-				card_dragging_y = mouse_y;
-
-				for (int i = mouse_on_card.row_index; i < all_cards_in_col; i++)
+				if (mouse_on_card.card != NULL)
 				{
-					append_element_to_array(card_several_dragging_data, 
-						&card_man->tableau[mouse_on_card.col_index][i]);
+					card_dragging = true;
+					card_dragging_data = mouse_on_card;
+					card_dragging_x = mouse_x;
+					card_dragging_y = mouse_y;
+				}
+			} 
+			else if (mouse_on_card.tableau == true)
+			{
+				if (mouse_on_card.card != NULL)
+				{
+					if (mouse_on_card.card->hidden == true)
+						return;
+
+					int all_cards_in_col = card_calculate_tableau_card_length(card_man, mouse_on_card.col_index);
+
+					// If it's the last card in the column
+					if (all_cards_in_col - 1 == mouse_on_card.row_index)
+					{
+						printf("only one drag\n");
+						card_dragging = true;
+						card_dragging_data = mouse_on_card;
+						card_dragging_x = mouse_x;
+						card_dragging_y = mouse_y;
+					}
+					else
+					{
+						printf("multiply drag\n");
+						card_dragging = true;
+						card_several_dragging = true;
+						card_several_dragging_data = create_array(sizeof(card_t*));
+						card_dragging_data = mouse_on_card;
+						card_dragging_x = mouse_x;
+						card_dragging_y = mouse_y;
+
+						for (int i = mouse_on_card.row_index; i < all_cards_in_col; i++)
+						{
+							append_element_to_array(card_several_dragging_data, 
+								&card_man->tableau[mouse_on_card.col_index][i]);
+						}
+					}
 				}
 			}
 		}

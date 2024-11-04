@@ -93,7 +93,10 @@ typedef struct __card_texture_t {
  
 typedef struct __card_manager_t {
     card_t tableau[7][13];
-    card_t stock[28];
+    card_t stock[24];
+    card_t talon[24];
+	int stock_size;
+	int talon_size;
 } card_manager_t;
 
 void render_cards(window_t* window, texture_map_t* t_map, card_manager_t* card_man);
